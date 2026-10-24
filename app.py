@@ -1,37 +1,48 @@
 
 import streamlit as st
 from datetime import datetime
+import sqlite3
+
 from evidence import calculate_hash
+from database import create_table, save_evidence, get_all_evidence
 
 
 st.set_page_config(
     page_title="EvidenceChain",
-    page_icon="🔐"
+    page_icon="🔐",
+    layout="wide"
 )
 
-st.title("🔐 EvidenceChain")
-st.subheader("Digital Evidence Chain of Custody")
+create_table()
+
+st.title("EvidenceChain")
+st.caption("Digital Evidence | Integrity & Custody Records")
 
 st.write(
-    "Register digital evidence and generate a SHA-256 "
-    "fingerprint for future integrity checks."
+    "Register digital evidence and maintain a record "
+    "of its original SHA-256 fingerprint."
 )
 
 st.warning(
-    "Use sample files only. This prototype does not yet "
-    "store records permanently or provide a secure evidence vault."
+    "Educational prototype. Use sample files only. "
+    "This application is not a secure evidence vault."
 )
 
-st.markdown("## Register Evidence")
+st.divider()
 
-evidence_id = st.text_input("Evidence ID")
-description = st.text_input("Evidence Description")
+st.header("Register Evidence")
 
-uploaded_file = st.file_uploader(
-    "Choose an evidence file"
-)
+with st.form("evidence_form"):
+    evidence_id = st.text_input("Evidence ID")
+    description = st.text_input("Evidence Description")
 
-if st.button("Register Evidence"):
+    uploaded_file = st.file_uploader(
+        "Choose an evidence file"
+    )
+
+    submitted = st.form_submit_button("Register Evidence")
+
+if submitted:
     if not evidence_id.strip():
         st.error("Please enter an Evidence ID.")
 
@@ -49,13 +60,53 @@ if st.button("Register Evidence"):
             "%Y-%m-%d %H:%M:%S %Z"
         )
 
-        st.success("Evidence fingerprint generated!")
+        try:
+            save_evidence(
+                evidence_id.strip(),
+                description.strip(),
+                uploaded_file.name,
+                file_hash,
+                registered_at
+            )
 
-        st.markdown("### Evidence Record")
-        st.write("**Evidence ID:**", evidence_id)
-        st.write("**Description:**", description)
-        st.write("**Filename:**", uploaded_file.name)
-        st.write("**Registration Time:**", registered_at)
-        st.write("**SHA-256 Hash:**")
+            st.success("Evidence record saved successfully!")
 
-        st.code(file_hash, language="text")
+            st.subheader("Registered Evidence")
+            st.write("**Evidence ID:**", evidence_id.strip())
+            st.write("**Filename:**", uploaded_file.name)
+            st.write("**Registered at:**", registered_at)
+            st.write("**SHA-256 fingerprint:**")
+            st.code(file_hash)
+
+        except sqlite3.IntegrityError:
+            st.error(
+                "This Evidence ID already exists. "
+                "Please use a different ID."
+            )
+
+st.divider()
+
+st.header("Evidence Register")
+
+records = get_all_evidence()
+
+if records:
+    table_data = []
+
+    for record in records:
+        table_data.append({
+            "Evidence ID": record[0],
+            "Description": record[1],
+            "Filename": record[2],
+            "SHA-256": record[3],
+            "Registered At": record[4]
+        })
+
+    st.dataframe(
+        table_data,
+        use_container_width=True,
+        hide_index=True
+    )
+
+else:
+    st.info("No evidence records have been saved yet.")
