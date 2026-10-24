@@ -4,7 +4,12 @@ from datetime import datetime
 import sqlite3
 
 from evidence import calculate_hash
-from database import create_table, save_evidence, get_all_evidence
+from database import (
+    create_table,
+    save_evidence,
+    get_all_evidence,
+    get_evidence_by_id
+)
 
 
 st.set_page_config(
@@ -110,3 +115,57 @@ if records:
 
 else:
     st.info("No evidence records have been saved yet.")
+
+
+st.divider()
+st.header("Verify Evidence")
+
+st.write(
+    "Check whether a file matches the fingerprint "
+    "stored when it was registered."
+)
+
+records = get_all_evidence()
+
+if records:
+    evidence_ids = [record[0] for record in records]
+
+    selected_id = st.selectbox(
+        "Select Evidence ID",
+        evidence_ids
+    )
+
+    verification_file = st.file_uploader(
+        "Upload the file to verify",
+        key="verification_file"
+    )
+
+    if st.button("Verify Integrity"):
+        if verification_file is None:
+            st.error("Please upload a file to verify.")
+        else:
+            original_record = get_evidence_by_id(selected_id)
+
+            original_hash = original_record[3]
+            uploaded_bytes = verification_file.getvalue()
+            current_hash = calculate_hash(uploaded_bytes)
+
+            st.write("**Stored SHA-256 fingerprint:**")
+            st.code(original_hash)
+
+            st.write("**Current SHA-256 fingerprint:**")
+            st.code(current_hash)
+
+            if original_hash == current_hash:
+                st.success(
+                    "INTEGRITY CHECK PASSED — "
+                    "The file matches the stored fingerprint."
+                )
+            else:
+                st.error(
+                    "INTEGRITY CHECK FAILED — "
+                    "The file does not match the stored fingerprint."
+                )
+else:
+    st.info("Register evidence before attempting verification.")
+

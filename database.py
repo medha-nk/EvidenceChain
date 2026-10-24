@@ -55,3 +55,19 @@ def get_all_evidence():
     connection.close()
 
     return records
+
+def get_evidence_by_id(evidence_id):
+    connection = sqlite3.connect("evidencechain.db")
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        SELECT evidence_id, description, filename,
+               file_hash, registered_at
+        FROM evidence
+        WHERE evidence_id = ?
+    """, (evidence_id,))
+
+    record = cursor.fetchone()
+    connection.close()
+
+    return record
