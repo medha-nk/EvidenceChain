@@ -14,6 +14,15 @@ def create_table():
             registered_at TEXT NOT NULL
         )
     """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS custody_log (
+            log_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            evidence_id TEXT NOT NULL,
+            action TEXT NOT NULL,
+            details TEXT NOT NULL,
+            logged_at TEXT NOT NULL
+        )
+    """)
 
     connection.commit()
     connection.close()
@@ -71,3 +80,40 @@ def get_evidence_by_id(evidence_id):
     connection.close()
 
     return record
+
+def log_custody_event(evidence_id, action, details, logged_at):
+    connection = sqlite3.connect("evidencechain.db")
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        INSERT INTO custody_log
+        (evidence_id, action, details, logged_at)
+        VALUES (?, ?, ?, ?)
+    """, (evidence_id, action, details, logged_at))
+
+    connection.commit()
+    connection.close()
+
+
+def get_custody_log(evidence_id=None):
+    connection = sqlite3.connect("evidencechain.db")
+    cursor = connection.cursor()
+
+    if evidence_id:
+        cursor.execute("""
+            SELECT log_id, evidence_id, action, details, logged_at
+            FROM custody_log
+            WHERE evidence_id = ?
+            ORDER BY log_id DESC
+        """, (evidence_id,))
+    else:
+        cursor.execute("""
+            SELECT log_id, evidence_id, action, details, logged_at
+            FROM custody_log
+            ORDER BY log_id DESC
+        """)
+
+    records = cursor.fetchall()
+    connection.close()
+
+    return records

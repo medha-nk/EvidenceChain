@@ -8,7 +8,9 @@ from database import (
     create_table,
     save_evidence,
     get_all_evidence,
-    get_evidence_by_id
+    get_evidence_by_id,
+    log_custody_event,
+    get_custody_log
 )
 
 
@@ -73,7 +75,12 @@ if submitted:
                 file_hash,
                 registered_at
             )
-
+            log_custody_event(
+                evidence_id.strip(),
+                "Evidence Registered",
+                f"File: {uploaded_file.name}; SHA-256: {file_hash}",
+                registered_at
+            )   
             st.success("Evidence record saved successfully!")
 
             st.subheader("Registered Evidence")
@@ -156,16 +163,69 @@ if records:
             st.write("**Current SHA-256 fingerprint:**")
             st.code(current_hash)
 
+            verification_time = (
+                datetime.now()
+                .astimezone()
+                .strftime("%Y-%m-%d %H:%M:%S %Z")
+            )
+
             if original_hash == current_hash:
+                log_custody_event(
+                    selected_id,
+                    "Integrity Verified",
+                    "PASS — SHA-256 fingerprints matched.",
+                    verification_time
+                )
+
                 st.success(
                     "INTEGRITY CHECK PASSED — "
                     "The file matches the stored fingerprint."
                 )
             else:
+                log_custody_event(
+                    selected_id,
+                    "Integrity Verification Failed",
+                    "FAIL — SHA-256 fingerprints did not match.",
+                    verification_time
+                )
+
                 st.error(
                     "INTEGRITY CHECK FAILED — "
                     "The file does not match the stored fingerprint."
                 )
+
 else:
     st.info("Register evidence before attempting verification.")
 
+st.divider()
+st.header("Chain of Custody")
+
+st.caption(
+    "Chronological record of evidence registration "
+    "and integrity verification events."
+)
+
+all_events = get_custody_log()
+
+if all_events:
+    event_data = []
+
+    for event in all_events:
+        event_data.append({
+            "Log ID": event[0],
+            "Evidence ID": event[1],
+            "Action": event[2],
+            "Details": event[3],
+            "Timestamp": event[4]
+        })
+
+    st.dataframe(
+        event_data,
+        use_container_width=True,
+        hide_index=True
+    )
+else:
+    st.info(
+        "No custody events recorded yet. "
+        "Register a new evidence item to begin."
+    )
