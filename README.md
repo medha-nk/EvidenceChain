@@ -164,7 +164,7 @@ This project provides practical experience with:
 
 ## Disclaimer
 
-EvidenceChain is developed for learning and demonstration purposes. It should not be relied upon as the sole means of preserving, validating, or presenting digital evidence in legal proceedings or real investigations.
+EvidenceChain is developed for learning and demonstration purposes! It should not be relied upon as the sole means of preserving, validating, or presenting digital evidence in legal proceedings or real investigations.
 
 ## Repository
 
